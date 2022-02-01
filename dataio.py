@@ -3,6 +3,40 @@ import torch
 from torch.utils.data import Dataset
 
 
+def get_mgrid(sidelen, dim=2):
+    '''Generates a flattened grid of (x,y,...) coordinates in a range of -1 to 1.'''
+    if isinstance(sidelen, int):
+        sidelen = dim * (sidelen,)
+
+    if dim == 2:
+        pixel_coords = np.stack(np.mgrid[:sidelen[0], :sidelen[1]], axis=-1)[None, ...].astype(np.float32)
+        pixel_coords[0, :, :, 0] = pixel_coords[0, :, :, 0] / (sidelen[0] - 1)
+        pixel_coords[0, :, :, 1] = pixel_coords[0, :, :, 1] / (sidelen[1] - 1)
+    elif dim == 3:
+        pixel_coords = np.stack(np.mgrid[:sidelen[0], :sidelen[1], :sidelen[2]], axis=-1)[None, ...].astype(np.float32)
+        pixel_coords[..., 0] = pixel_coords[..., 0] / max(sidelen[0] - 1, 1)
+        pixel_coords[..., 1] = pixel_coords[..., 1] / (sidelen[1] - 1)
+        pixel_coords[..., 2] = pixel_coords[..., 2] / (sidelen[2] - 1)
+    else:
+        raise NotImplementedError('Not implemented for dim=%d' % dim)
+
+    pixel_coords -= 0.5
+    pixel_coords *= 2.
+    pixel_coords = torch.Tensor(pixel_coords).view(-1, dim)
+    return pixel_coords
+
+
+def lin2img(tensor, image_resolution=None):
+    batch_size, num_samples, channels = tensor.shape
+    if image_resolution is None:
+        width = np.sqrt(num_samples).astype(int)
+        height = width
+    else:
+        height = image_resolution[0]
+        width = image_resolution[1]
+
+    return tensor.permute(0, 2, 1).view(batch_size, channels, height, width)
+
 class PointCloud(Dataset):
     def __init__(self, pointcloud_path, on_surface_points, keep_aspect_ratio=True):
         super().__init__()

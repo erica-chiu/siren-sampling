@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from torchmeta.modules import (MetaModule, MetaSequential)
+from torchmeta import (MetaModule, MetaSequential)
 import numpy as np
 from collections import OrderedDict
 import math

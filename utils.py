@@ -2,11 +2,39 @@ import numpy as np
 import torch
 import dataio
 import os
-
+import matplotlib.pyplot as plt
 
 def cond_mkdir(path):
     if not os.path.exists(path):
         os.makedirs(path)
+
+def make_contour_plot(array_2d,mode='log'):
+    fig, ax = plt.subplots(figsize=(2.75, 2.75), dpi=300)
+
+    if(mode=='log'):
+        num_levels = 6
+        levels_pos = np.logspace(-2, 0, num=num_levels) # logspace
+        levels_neg = -1. * levels_pos[::-1]
+        levels = np.concatenate((levels_neg, np.zeros((0)), levels_pos), axis=0)
+        colors = plt.get_cmap("Spectral")(np.linspace(0., 1., num=num_levels*2+1))
+    elif(mode=='lin'):
+        num_levels = 10
+        levels = np.linspace(-.5,.5,num=num_levels)
+        colors = plt.get_cmap("Spectral")(np.linspace(0., 1., num=num_levels))
+
+    sample = np.flipud(array_2d)
+    CS = ax.contourf(sample, levels=levels, colors=colors)
+    cbar = fig.colorbar(CS)
+
+    ax.contour(sample, levels=levels, colors='k', linewidths=0.1)
+    ax.contour(sample, levels=[0], colors='k', linewidths=0.3)
+    ax.axis('off')
+    return fig
+
+def min_max_summary(name, tensor, writer, total_steps):
+    writer.add_scalar(name + '_min', tensor.min().detach().cpu().numpy(), total_steps)
+    writer.add_scalar(name + '_max', tensor.max().detach().cpu().numpy(), total_steps)
+
 
 
 def write_sdf_summary(model, model_input, gt, model_output, writer, total_steps, prefix='train_'):
