@@ -44,26 +44,27 @@ class SampleRunner:
                 return self.model(model_in)['model_out']
 
         model = SDFDecoder(self.model_name)
+        model.eval()
         function = SampleObjective(model=model, temp=self.temp, dim_x=self.dims, use_jacobian=self.use_jacobian)
 
         init_x = np.random.uniform(-1, 1, size=[self.dims])
         overall_xs = train(init_x=init_x, function=function, epochs=self.epochs, warm_up=self.warm_up)
-        f_data = [self.funcs(x) for x in overall_xs]
+        f_data = [model(torch.unsqueeze(torch.tensor(x).cuda().float(),dim=0)).detach().cpu().numpy() for x in overall_xs]
         xs = overall_xs[:, 0]
         ys = overall_xs[:, 1]
-        min_x, min_y, max_x, max_y = min(xs)-1, min(ys)-1, max(xs)+2, max(ys)+2
-        x_coords, y_coords = np.meshgrid(np.linspace(min_x, max_x, 500), np.linspace(min_y,max_y, 500))
-        rows, cols = np.shape(x_coords)
-        prob = np.zeros((rows, cols))
-        for i in range(rows):
-            for j in range(cols):
-                prob[i, j] = np.exp(function.log_p(np.array([x_coords[i][j], y_coords[i][j]])))
+        # min_x, min_y, max_x, max_y = min(xs)-1, min(ys)-1, max(xs)+2, max(ys)+2
+        # x_coords, y_coords = np.meshgrid(np.linspace(min_x, max_x, 500), np.linspace(min_y,max_y, 500))
+        # rows, cols = np.shape(x_coords)
+        # prob = np.zeros((rows, cols))
+        # for i in range(rows):
+        #     for j in range(cols):
+        #         prob[i, j] = np.exp(function.log_p(np.array([x_coords[i][j], y_coords[i][j]])))
 
         with h5py.File(self.filename, "w") as f:
             f.create_dataset('overall_xs', data=overall_xs)
             f.create_dataset('f_data', data=f_data)
-            f.create_dataset('prob', data=prob)
-            f.create_dataset('x_coords', data=x_coords)
-            f.create_dataset('y_coords', data=y_coords)
+            # f.create_dataset('prob', data=prob)
+            # f.create_dataset('x_coords', data=x_coords)
+            # f.create_dataset('y_coords', data=y_coords)
 
 

@@ -11,16 +11,16 @@ class Config:
         self.seed = 1000
 
         # Init x parameters
-        self.dims = 2
+        self.dims = 3
         self.init_x_sigma = 0.1
 
         self.experiment_path = '/mnt/ejchiu/siren-sampling/logs/' + 'experiment_2'
 
-        self.model_name = self.experiment_path +'/models/model_9999.pth'
+        self.model_name = self.experiment_path +'/checkpoints/model_epoch_9999.pth'
         self.temp = temp
         self.use_jacobian = False
-        self.epochs = 1000
-        self.warm_up = 50
+        self.epochs = 10000
+        self.warm_up = 500
 
         # Training parameters
         # self.momentum_sigma = 0.005

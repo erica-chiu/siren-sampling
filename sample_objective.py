@@ -52,7 +52,8 @@ class SampleObjective:
         """
         if not_tensor:
             x = torch.tensor(x, requires_grad=True)
-
+        x = x.cuda().float()
+        x = torch.unsqueeze(x, dim=0)
         result = self._norm_f(x)
         if self.use_jacobian:
             result -= self._log_det_jacobian(x)
