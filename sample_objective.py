@@ -11,22 +11,6 @@ class SampleObjective:
         self.use_jacobian = use_jacobian
         self.dim_x = dim_x
 
-
-
-    def _dfin(self, f, x):
-        """
-
-        :param f_i: R^d -> R
-        :param x: R^d
-        :return: grad f_i(x) [d]
-        """
-        f_result = f(x)
-        gradient = torch.autograd.grad(f_result, x, create_graph=True)[0]
-        # if self.normalize:
-        #     return gradient / (gradient.norm())
-        # else:
-        return gradient
-
     def _norm_f(self, x):
         """
         ||f(x)||^2/T

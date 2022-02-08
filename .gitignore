@@ -2,3 +2,4 @@
 logs/
 pointclouds/
 *.idea*
+results/*
