@@ -7,6 +7,7 @@ import h5py
 import modules
 from sampling import train
 from sample_objective import SampleObjective
+import diff_operators
 
 class SampleRunner:
     def __init__(self, conf):
@@ -43,8 +44,9 @@ class SampleRunner:
                 model_in = {'coords': coords}
                 return self.model(model_in)['model_out']
 
+
         model = SDFDecoder(self.model_name)
-        model.eval()
+        # model.eval()
         function = SampleObjective(model=model, temp=self.temp, dim_x=self.dims, use_jacobian=self.use_jacobian)
 
         init_x = np.random.uniform(-1, 1, size=[self.dims])
@@ -53,18 +55,26 @@ class SampleRunner:
         xs = overall_xs[:, 0]
         ys = overall_xs[:, 1]
         # min_x, min_y, max_x, max_y = min(xs)-1, min(ys)-1, max(xs)+2, max(ys)+2
-        # x_coords, y_coords = np.meshgrid(np.linspace(min_x, max_x, 500), np.linspace(min_y,max_y, 500))
-        # rows, cols = np.shape(x_coords)
-        # prob = np.zeros((rows, cols))
-        # for i in range(rows):
-        #     for j in range(cols):
-        #         prob[i, j] = np.exp(function.log_p(np.array([x_coords[i][j], y_coords[i][j]])))
+        num_grid = 50
+        x_coords, y_coords, z_coords = np.meshgrid(np.linspace(-4., 4., num_grid), np.linspace(-4., 4., num_grid), np.linspace(-4., 4., num_grid))
+        rows, cols, height = np.shape(x_coords)
+        prob = np.zeros((rows, cols, height))
+        gradient = np.zeros((rows, cols, height, 3))
+        for i in range(rows):
+            for j in range(cols):
+                for k in range(height):
+                    value = np.array([x_coords[i][j][k], y_coords[i][j][k], z_coords[i][j][k]])
+                    prob[i, j, k] = np.exp(function.log_p(value))
+                    gradient[i,j,k, :] = function.u_gradient_fn(value)
+
 
         with h5py.File(self.filename, "w") as f:
             f.create_dataset('overall_xs', data=overall_xs)
             f.create_dataset('f_data', data=f_data)
-            # f.create_dataset('prob', data=prob)
-            # f.create_dataset('x_coords', data=x_coords)
-            # f.create_dataset('y_coords', data=y_coords)
+            f.create_dataset('prob', data=prob)
+            f.create_dataset('x_coords', data=x_coords)
+            f.create_dataset('y_coords', data=y_coords)
+            f.create_dataset('z_coords', data=z_coords)
+            f.create_dataset('gradient', data=gradient)
 
 

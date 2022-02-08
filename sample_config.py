@@ -18,7 +18,7 @@ class Config:
 
         self.model_name = self.experiment_path +'/checkpoints/model_epoch_9999.pth'
         self.temp = temp
-        self.use_jacobian = False
+        self.use_jacobian = False 
         self.epochs = 10000
         self.warm_up = 500
 
@@ -36,6 +36,8 @@ class Config:
         # if self.normalize:
         #     self.filename += 'norm_'
         self.filename += 'temp_' + str(self.temp) + '_'
+        if self.use_jacobian:
+            self.filename += "jacobian_"
         self.filename += 'result.hdf5'
 
 
