@@ -4,11 +4,12 @@ import numpy as np
 
 
 class SampleObjective:
-    def __init__(self, model, temp, dim_x, use_jacobian=True):
+    def __init__(self, model, temp, dim_x, use_jacobian=True, use_bounding_box=False):
         self.model = model
         self.temp = temp
         #self.normalize = normalize
         self.use_jacobian = use_jacobian
+        self.use_bounding_box = use_bounding_box
         self.dim_x = dim_x
 
 
@@ -27,6 +28,13 @@ class SampleObjective:
         # else:
         return gradient
 
+    def _barrier(self, x):
+        boundary_value = 1.
+        outside = torch.logical_or(x > boundary_value, x < - boundary_value).float()
+        result = ((10*(torch.abs(x) - boundary_value))**10) * outside 
+        return torch.sum(result)
+
+
     def _norm_f(self, x):
         """
         ||f(x)||^2/T
@@ -34,12 +42,17 @@ class SampleObjective:
         :param coefs: [num_f]
         :return:
         """
-        norm = torch.sum(self.model(x) ** 2)
+        result = self.model(x)
+        if self.use_bounding_box:
+            result += self._barrier(x)
+        norm = torch.sum(result ** 2)
         return norm / self.temp
 
     def _log_det_jacobian(self, x):
-        sdf = self.model.model({'coords':x})
-        jacobian = torch.autograd.grad(sdf['model_out'], sdf['model_in'], grad_outputs=torch.ones_like(sdf['model_out']), create_graph=True)[0]
+        model_out = self.model(x)
+        if self.use_bounding_box:
+            model_out += self._barrier(x)
+        jacobian = torch.autograd.grad(model_out, x, grad_outputs=torch.ones_like(model_out), create_graph=True)[0]
         return torch.log(torch.sqrt(torch.linalg.det(jacobian @ jacobian.T)))
 
 

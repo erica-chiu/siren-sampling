@@ -14,7 +14,7 @@ class Config:
         self.dims = 3
         self.init_x_sigma = 0.1
 
-        self.experiment_path = '/mnt/ejchiu/siren-sampling/logs/' + 'experiment_2'
+        self.experiment_path = '/mnt/ejchiu/siren-sampling/logs/' + 'experiment_ellipse_side_length_additional'
 
         self.model_name = self.experiment_path +'/checkpoints/model_final.pth'
         self.temp = temp

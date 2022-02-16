@@ -63,6 +63,7 @@ class PointCloud(Dataset):
         self.coords *= 2.
 
         self.on_surface_points = on_surface_points
+        self.off_sample_side_length = 2
 
     def __len__(self):
         return self.coords.shape[0] // self.on_surface_points
@@ -70,7 +71,7 @@ class PointCloud(Dataset):
     def __getitem__(self, idx):
         point_cloud_size = self.coords.shape[0]
 
-        off_surface_samples = self.on_surface_points  # **2
+        off_surface_samples = self.on_surface_points * 8  # **2
         total_samples = self.on_surface_points + off_surface_samples
 
         # Random coords
@@ -79,7 +80,7 @@ class PointCloud(Dataset):
         on_surface_coords = self.coords[rand_idcs, :]
         on_surface_normals = self.normals[rand_idcs, :]
 
-        off_surface_coords = np.random.uniform(-1, 1, size=(off_surface_samples, 3))
+        off_surface_coords = np.random.uniform(-self.off_sample_side_length, self.off_sample_side_length, size=(off_surface_samples, 3))
         off_surface_normals = np.ones((off_surface_samples, 3)) * -1
 
         sdf = np.zeros((total_samples, 1))  # on-surface = 0

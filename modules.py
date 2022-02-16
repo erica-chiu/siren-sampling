@@ -144,7 +144,7 @@ class SingleBVPNet(MetaModule):
             params = OrderedDict(self.named_parameters())
 
         # Enables us to compute gradients w.r.t. coordinates
-        coords_org = model_input['coords'].clone().requires_grad_(True)
+        coords_org = model_input['coords'].clone().detach().requires_grad_(True)
         coords = coords_org
 
         # various input processing methods for different applications
@@ -164,6 +164,24 @@ class SingleBVPNet(MetaModule):
         activations = self.net.forward_with_activations(coords)
         return {'model_in': coords, 'model_out': activations.popitem(), 'activations': activations}
 
+    def forward_with_grad(self, model_input, params=None):
+        if params is None:
+            params = OrderedDict(self.named_parameters())
+
+        # Enables us to compute gradients w.r.t. coordinates
+        coords_org = model_input['coords'].clone().requires_grad_(True)
+        coords = coords_org
+
+        # various input processing methods for different applications
+        if self.image_downsampling.downsample:
+            coords = self.image_downsampling(coords)
+        if self.mode == 'rbf':
+            coords = self.rbf_layer(coords)
+        elif self.mode == 'nerf':
+            coords = self.positional_encoding(coords)
+
+        output = self.net(coords, self.get_subdict(params, 'net'))
+        return {'model_in': coords_org, 'model_out': output}
 
 class PINNet(nn.Module):
     '''Architecture used by Raissi et al. 2019.'''
