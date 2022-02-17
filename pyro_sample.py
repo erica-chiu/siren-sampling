@@ -4,9 +4,11 @@ from pyro.infer import NUTS, MCMC, HMC
 
 def mcmc_samples(input_function, num_samples, start_value, mcmc_type, warmup_steps=200):
 
+    start_value = start_value.cuda().float()
+
     def potential_fn(z):
         z = z['points']
-        return input_function.u_fn(z) 
+        return input_function.u_fn(z, not_tensor=False) 
 
     mcmc_kernel = None
     if mcmc_type == 'nuts':
@@ -18,4 +20,4 @@ def mcmc_samples(input_function, num_samples, start_value, mcmc_type, warmup_ste
 
     mcmc.run()
 
-    return mcmc.get_samples()['points']
+    return mcmc.get_samples()['points'].cpu().detach().numpy()

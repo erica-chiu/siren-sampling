@@ -14,7 +14,7 @@ class Config:
         self.dims = 3
         self.init_x_sigma = 0.1
 
-        self.experiment_path = '/mnt/ejchiu/siren-sampling/logs/' + 'experiment_ellipse_side_length_additional'
+        self.experiment_path = '/mnt/ejchiu/siren-sampling/logs/' + 'experiment_teapot_side_length'
 
         self.model_name = self.experiment_path +'/checkpoints/model_final.pth'
         self.temp = temp
@@ -51,7 +51,7 @@ class Config:
 
 
 if __name__ == '__main__':
-    for use_jacobian in [True ]:
+    for use_jacobian in [True, False]:
         for temp in [0.001, 0.0001, 0.01, 0.1, 0.00001, 1.]:
             conf = Config(temp=temp, use_jacobian=use_jacobian)
             print(conf.temp)

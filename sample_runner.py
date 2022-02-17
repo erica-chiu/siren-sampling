@@ -8,6 +8,7 @@ import modules
 from sampling import train
 from sample_objective import SampleObjective
 import diff_operators
+from pyro_sample import mcmc_samples
 
 class SampleRunner:
     def __init__(self, conf):
@@ -56,7 +57,7 @@ class SampleRunner:
         if self.mcmc_type == 'mh':
             overall_xs, acceptance_prob = train(init_x=init_x, function=function, epochs=self.epochs, warm_up=self.warm_up, reject_outside_bounds=self.reject_outside_bounds)
         else:
-            overall_xs = pyro_samples(function=function, mcmc_type=self.mcmc_type, num_samples=self.epochs, warmup_steps=self.warm_up) 
+            overall_xs = mcmc_samples(input_function=function, start_value=torch.tensor(init_x ), mcmc_type=self.mcmc_type, num_samples=self.epochs, warmup_steps=self.warm_up) 
         f_data = [model(torch.unsqueeze(torch.tensor(x).cuda().float(),dim=0)).detach().cpu().numpy() for x in overall_xs]
         xs = overall_xs[:, 0]
         ys = overall_xs[:, 1]
