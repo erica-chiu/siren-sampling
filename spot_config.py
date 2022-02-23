@@ -23,7 +23,7 @@ class Config:
         self.warm_up = 500
         self.use_bounding_box = True 
         self.reject_outside_bounds = False 
-        self.mcmc_type = 'hmc'
+        self.mcmc_type = 'mala'
 
         # Training parameters
         # self.momentum_sigma = 0.005
@@ -51,8 +51,8 @@ class Config:
 
 
 if __name__ == '__main__':
-    for use_jacobian in [True, False]:
-        for temp in [0.001, 0.0001, 0.01, 0.1, 0.00001, 1.]:
+    for temp in [0.001, 0.0001, 0.01, 0.1, 1., 0.00001]:
+        for use_jacobian in [True, False]:
             conf = Config(temp=temp, use_jacobian=use_jacobian)
             print(conf.temp)
             runner = SampleRunner(conf)

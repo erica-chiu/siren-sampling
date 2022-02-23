@@ -52,7 +52,7 @@ class Config:
 
 if __name__ == '__main__':
     for use_jacobian in [True, False]:
-        for temp in [0.001, 0.0001, 0.01, 0.1, 0.00001, 1.]:
+        for temp in [1., 0.00001]:
             conf = Config(temp=temp, use_jacobian=use_jacobian)
             print(conf.temp)
             runner = SampleRunner(conf)

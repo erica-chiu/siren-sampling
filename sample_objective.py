@@ -16,7 +16,7 @@ class SampleObjective:
     def _barrier(self, x):
         boundary_value = 1.
         outside = torch.logical_or(x > boundary_value, x < - boundary_value).float()
-        result = ((10*(torch.abs(x) - boundary_value))**10) * outside 
+        result = (torch.pow(10*(torch.abs(x) - boundary_value), 10)) * outside 
         return torch.sum(result)
 
 
@@ -30,7 +30,7 @@ class SampleObjective:
         result = self.model(x)
         if self.use_bounding_box:
             result += self._barrier(x)
-        norm = torch.sum(result ** 2)
+        norm = torch.sum(torch.pow(result, 2))
         return norm / self.temp
 
     def _log_det_jacobian(self, x):

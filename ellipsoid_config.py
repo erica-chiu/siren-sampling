@@ -8,7 +8,7 @@ class Config:
     # Config classes should not create any tensor, but only formulas for
     # creating them.
     def __init__(self, temp=1.0, use_jacobian=True):
-        self.seed = 1000
+        self.seed = 1003
 
         # Init x parameters
         self.dims = 3
@@ -23,7 +23,7 @@ class Config:
         self.warm_up = 500
         self.use_bounding_box = True 
         self.reject_outside_bounds = False 
-        self.mcmc_type = 'hmc'
+        self.mcmc_type = 'mh'
 
         # Training parameters
         # self.momentum_sigma = 0.005
@@ -46,12 +46,12 @@ class Config:
         if self.reject_outside_bounds:
             self.filename += "reject_"
         self.filename += self.mcmc_type + '_'
-        self.filename += 'result.hdf5'
+        self.filename += 'alt_seed_result.hdf5'
 
 
 
 if __name__ == '__main__':
-    for use_jacobian in [True ]:
+    for use_jacobian in [True, False ]:
         for temp in [0.001, 0.0001, 0.01, 0.1, 0.00001, 1.]:
             conf = Config(temp=temp, use_jacobian=use_jacobian)
             print(conf.temp)
