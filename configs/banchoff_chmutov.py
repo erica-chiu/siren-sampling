@@ -14,15 +14,21 @@ class Config:
         self.dims = 3
         self.init_x_sigma = 0.1
 
+        n = 4
+
+        def chebishev(xs, n):
+            xs_squared = torch.pow(xs, 2)
+            total = 0.
+            for k in range(n // 2 + 1):
+                total += math.comb(n, 2*k) * torch.pow(xs_squared - 1, k) * torch.pow(xs, n - 2 * k)
+            return total
+
+
         def heart(x):
             xs = x[:, 0]
             ys = x[:,1]
             zs = x[:,2]
-            x_squared = torch.pow(xs,2)
-            y_squared = torch.pow(ys,2)
-            z_squared = torch.pow(zs,2)
-            z_cubed = torch.pow(zs,3)
-            return  torch.pow(x_squared + 9/4 * y_squared + z_squared - 1, 3) - x_squared * z_cubed - 9/80 * y_squared * z_cubed
+            return chebishev(xs, n) + chebishev(ys, n) + chebishev(zs, n) 
 
         self.func = heart 
 
@@ -43,7 +49,7 @@ class Config:
 
         # Saving paths
 
-        self.filename = '/mnt/ejchiu/siren-sampling/logs/heart/sampling/'
+        self.filename = '/mnt/ejchiu/siren-sampling/logs/banchoff_chmutov' + str(n) + '/sampling/'
         # if self.inexact:
         #     self.filename += 'inexact_'
         # if self.normalize:
@@ -56,7 +62,7 @@ class Config:
         if self.reject_outside_bounds:
             self.filename += "reject_"
         self.filename += self.mcmc_type 
-        self.filename += 'tbd_result.hdf5'
+        self.filename += '_result.hdf5'
 
 
 
