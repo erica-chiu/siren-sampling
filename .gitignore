@@ -3,3 +3,9 @@ logs/
 pointclouds/
 *.idea*
 results/*
+uniformity/
+check_sdf/
+meshes/
+.DS_Store
+.ipynb_checkpoints
+*.ply
