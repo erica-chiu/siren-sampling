@@ -13,25 +13,10 @@ class SampleObjective:
         self.dim_x = dim_x
 
 
-
-    def _dfin(self, f, x):
-        """
-
-        :param f_i: R^d -> R
-        :param x: R^d
-        :return: grad f_i(x) [d]
-        """
-        f_result = f(x)
-        gradient = torch.autograd.grad(f_result, x, create_graph=True)[0]
-        # if self.normalize:
-        #     return gradient / (gradient.norm())
-        # else:
-        return gradient
-
     def _barrier(self, x):
         boundary_value = 1.
         outside = torch.logical_or(x > boundary_value, x < - boundary_value).float()
-        result = ((10*(torch.abs(x) - boundary_value))**10) * outside 
+        result = (torch.pow(10*(torch.abs(x) - boundary_value), 10)) * outside 
         return torch.sum(result)
 
 
@@ -45,10 +30,11 @@ class SampleObjective:
         result = self.model(x)
         if self.use_bounding_box:
             result += self._barrier(x)
-        norm = torch.sum(result ** 2)
+        norm = torch.sum(torch.pow(result, 2))
         return norm / self.temp
 
     def _log_det_jacobian(self, x):
+        
         model_out = self.model(x)
         if self.use_bounding_box:
             model_out += self._barrier(x)
@@ -66,6 +52,11 @@ class SampleObjective:
         if not_tensor:
             x = torch.tensor(x, requires_grad=True)
             x = x.cuda().float()
+            
+        # x = x.clone().detach()
+        if not x.requires_grad:
+            x = x.clone().detach()
+            x.requires_grad_()
         x = torch.unsqueeze(x, dim=0)
         result = self._norm_f(x)
         if self.use_jacobian:
