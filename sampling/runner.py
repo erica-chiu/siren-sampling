@@ -4,28 +4,34 @@ import torch
 import random
 import h5py
 
-import modules
-from sampling import train
-from sample_objective import SampleObjective
-import diff_operators
-from pyro_sample import mcmc_samples
+from sampling.mh import train
+from sampling.sample_objective import SampleObjective
+from sampling.pyro_sample import mcmc_samples
+from sampling.siren_utils import get_siren_model
+from sampling.utils import save_numpy_arrays
 
 class Runner:
     def __init__(self, conf):
         self.conf = conf
 
         self.func = getattr(self.conf, 'func')
+        self.func_type = getattr(self.conf, 'func_type')
         self.dims = getattr(self.conf, 'dims', 2)
         self.epochs = getattr(self.conf, 'epochs', 1000)
         self.warm_up = getattr(self.conf, 'warm_up', 50)
-        self.sampling_type = getattr(self.conf, 'sampling_type')
+        self.mcmc_type = getattr(self.conf, 'mcmc_type')
 
         self.temp = getattr(self.conf, 'temp', 1.0)
         self.use_jacobian = getattr(self.conf, 'use_jacobian', True)
         self.use_bounding_box = getattr(self.conf, 'use_bounding_box', False)
         self.reject_outside_bounds = getattr(self.conf, 'reject_outside_bounds', False)
 
+        self.min_coord, self.max_coord = getattr(self.conf, 'coord_lims', (-2., 2.))
+        self.num_grid = getattr(self.conf, 'num_grid', 200)
+        self.nonzero_dims = getattr(self.conf, 'nonzero_dims', (0,1))
+
         self.filename = getattr(self.conf, 'filename')
+        
 
 
     def run(self):
@@ -36,64 +42,61 @@ class Runner:
             np.random.seed(seed)
             random.seed(seed)
 
-        class SDFDecoder(torch.nn.Module):
-            def __init__(self, model_name):
-                super().__init__()
-                # Define the model.
-                self.model = modules.SingleBVPNet(type='sine', final_layer_factor=1, in_features=3)
-                self.model.load_state_dict(torch.load(model_name))
-                self.model.cuda()
+        if self.func_type == 'siren_model':
+            model = get_siren_model(self.func)
+            def func(x):
+                x = x.cuda()
+                return model(x).cpu()
+            self.func = func
 
-            def forward(self, coords):
-                model_in = {'coords': coords}
-                return self.model.forward_with_grad(model_in)['model_out']
-
-
-        model = SDFDecoder(self.model_name)
-        # model.eval()
-        function = SampleObjective(model=model, temp=self.temp, dim_x=self.dims, use_jacobian=self.use_jacobian, use_bounding_box=self.use_bounding_box)
+        results = {}
+            
+        function = SampleObjective(func=self.func, temp=self.temp, dim_x=self.dims, use_jacobian=self.use_jacobian, use_bounding_box=self.use_bounding_box)
 
         init_x = np.random.uniform(-1, 1, size=[self.dims])
         if self.mcmc_type == 'mh':
             overall_xs, acceptance_prob = train(init_x=init_x, function=function, epochs=self.epochs, warm_up=self.warm_up, reject_outside_bounds=self.reject_outside_bounds)
+            results['acceptance_prob'] = acceptance_prob
         else:
             overall_xs, diagnostics = mcmc_samples(input_function=function, start_value=torch.tensor(init_x ), mcmc_type=self.mcmc_type, num_samples=self.epochs, warmup_steps=self.warm_up) 
-        f_data = [model(torch.unsqueeze(torch.tensor(x).cuda().float(),dim=0)).detach().cpu().numpy() for x in overall_xs]
-        xs = overall_xs[:, 0]
-        ys = overall_xs[:, 1]
-        # min_x, min_y, max_x, max_y = min(xs)-1, min(ys)-1, max(xs)+2, max(ys)+2
-        num_grid = 50
-        min_coord, max_coord = -2., 2.
-        x_coords, y_coords, z_coords = np.meshgrid(np.linspace(min_coord, max_coord, num_grid), np.linspace(min_coord, max_coord, num_grid), np.linspace(min_coord, max_coord, num_grid))
-        rows, cols, height = np.shape(x_coords)
-        prob = np.zeros((rows, cols, height))
-        gradient = np.zeros((rows, cols, height, 3))
-        f_values = np.zeros((rows, cols, height))
+
+            for name, diagnostic_dict in diagnostics.items():
+                for sub_name, diagnostic in diagnostic_dict.items():
+                    results['diagnostic_' + name + '_' + sub_name] =diagnostic
+
+        results['overall_xs'] = overall_xs
+
+        f_data = [self.func(torch.unsqueeze(torch.tensor(x).float(),dim=0)).numpy() for x in overall_xs]
+        results['f_data'] = f_data
+
+        coords = np.linspace(self.min_coord, self.max_coord, self.num_gird)
+        x_coords, y_coords = np.meshgrid(coords, coords)
+        rows, cols = np.shape(x_coords)
+        prob = np.zeros((rows, cols ))
+        gradient = np.zeros((rows, cols, 3))
+        f_values = np.zeros((rows, cols))
+        log_det_jacob = np.zeros((rows,cols))
         for i in range(rows):
             for j in range(cols):
-                for k in range(height):
-                    value = np.array([x_coords[i][j][k], y_coords[i][j][k], z_coords[i][j][k]])
-                    prob[i, j, k] = np.exp(function.log_p(value))
-                    # gradient[i,j,k, :] = function.u_gradient_fn(value)
-                    f_values[i,j,k] = model(torch.tensor(np.array([value])).cuda().float())
+                value = np.zeros(self.dims)
+                value[self.nonzero_dims[0]] = x_coords[i][j]
+                value[self.nonzero_dims[1]] = y_coords[i][j]
+                value = np.array(value)
 
-        path = os.path.dirname(os.path.abspath(self.filename))
-        if not os.path.exists(path):
-            os.makedirs(path)
+                prob[i, j, k] = np.exp(function.log_p(value))
+                gradient[i,j,k, :] = function.u_gradient_fn(value)
+                log_det_jacob[i,j,k] = function._log_det_jacobian(value)
+                f_values[i,j,k] = self.func(torch.tensor(np.array([value])).float())
 
-        with h5py.File(self.filename, "w") as f:
-            f.create_dataset('overall_xs', data=overall_xs)
-            f.create_dataset('f_data', data=f_data)
-            f.create_dataset('prob', data=prob)
-            f.create_dataset('x_coords', data=x_coords)
-            f.create_dataset('y_coords', data=y_coords)
-            f.create_dataset('z_coords', data=z_coords)
-            # f.create_dataset('gradient', data=gradient)
-            f.create_dataset('f_values', data=f_values)
-            # f.create_dataset('acceptance_prob', data=acceptance_prob)
-            if diagnostics:
-                for name, diagnostic_dict in diagnostics.items():
-                    for sub_name, diagnostic in diagnostic_dict.items():
-                        f.create_dataset('diagnostic_' + name + '_' + sub_name, data=diagnostic)
+        results['prob'] = prob
+        results['x_coords'] = x_coords
+        results['y_coords'] = y_coords
+        results['gradient'] = gradient
+        results['f_values'] = f_values
+        results['log_dit_jacobian'] = log_det_jacob
+        
+
+        save_numpy_arrays(self.filename, results)
+
 
 

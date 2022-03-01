@@ -4,8 +4,8 @@ import numpy as np
 
 
 class SampleObjective:
-    def __init__(self, model, temp, dim_x, use_jacobian=True, use_bounding_box=False):
-        self.model = model
+    def __init__(self, func, temp, dim_x, use_jacobian=True, use_bounding_box=False):
+        self.func = func 
         self.temp = temp
         #self.normalize = normalize
         self.use_jacobian = use_jacobian
@@ -27,7 +27,7 @@ class SampleObjective:
         :param coefs: [num_f]
         :return:
         """
-        result = self.model(x)
+        result = self.func(x)
         if self.use_bounding_box:
             result += self._barrier(x)
         norm = torch.sum(torch.pow(result, 2))
@@ -35,10 +35,10 @@ class SampleObjective:
 
     def _log_det_jacobian(self, x):
         
-        model_out = self.model(x)
+        func_out = self.func(x)
         if self.use_bounding_box:
-            model_out += self._barrier(x)
-        jacobian = torch.autograd.grad(model_out, x, grad_outputs=torch.ones_like(model_out), create_graph=True)[0]
+            func_out += self._barrier(x)
+        jacobian = torch.autograd.grad(func_out, x, grad_outputs=torch.ones_like(func_out), create_graph=True)[0]
         return torch.log(torch.sqrt(torch.linalg.det(jacobian @ jacobian.T)))
 
 
@@ -51,7 +51,7 @@ class SampleObjective:
         """
         if not_tensor:
             x = torch.tensor(x, requires_grad=True)
-            x = x.cuda().float()
+            x = x.float()
             
         # x = x.clone().detach()
         if not x.requires_grad:
@@ -71,14 +71,14 @@ class SampleObjective:
         :param mass_inv: [n, n]
         :return: [1,1]
         """
-        return self.u_fn(weights).detach().cpu().numpy() + momentum.T @ mass_inv @ momentum
+        return self.u_fn(weights).detach().numpy() + momentum.T @ mass_inv @ momentum
 
     def u_gradient_fn(self, x):
-        x = torch.tensor(x, requires_grad=True).cuda().float()
+        x = torch.tensor(x, requires_grad=True).float()
         result = self.u_fn(x, not_tensor=False)
-        return torch.autograd.grad(result, x, grad_outputs=torch.ones_like(result), create_graph=True)[0].detach().cpu().numpy()
+        return torch.autograd.grad(result, x, grad_outputs=torch.ones_like(result), create_graph=True)[0].detach().numpy()
 
     def log_p(self, x, not_tensor=True):
-        return -self.u_fn(x, not_tensor).detach().cpu().numpy()
+        return -self.u_fn(x, not_tensor).detach().numpy()
 
 
