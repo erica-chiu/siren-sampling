@@ -25,6 +25,7 @@ class Runner:
         self.use_jacobian = getattr(self.conf, 'use_jacobian', True)
         self.use_bounding_box = getattr(self.conf, 'use_bounding_box', False)
         self.reject_outside_bounds = getattr(self.conf, 'reject_outside_bounds', False)
+        self.manual_jacobian = getattr(self.conf, 'manual_jacobian', None)
 
         self.min_coord, self.max_coord = getattr(self.conf, 'coord_lims', (-2., 2.))
         self.num_grid = getattr(self.conf, 'num_grid', 200)
@@ -51,14 +52,14 @@ class Runner:
 
         results = {}
             
-        function = SampleObjective(func=self.func, temp=self.temp, dim_x=self.dims, use_jacobian=self.use_jacobian, use_bounding_box=self.use_bounding_box)
+        function = SampleObjective(func=self.func, temp=self.temp, dim_x=self.dims, use_jacobian=self.use_jacobian, use_bounding_box=self.use_bounding_box, manual_jacobian=self.manual_jacobian)
 
         init_x = np.random.uniform(-1, 1, size=[self.dims])
         if self.mcmc_type == 'mh':
             overall_xs, acceptance_prob = train(init_x=init_x, function=function, epochs=self.epochs, warm_up=self.warm_up, reject_outside_bounds=self.reject_outside_bounds)
             results['acceptance_prob'] = acceptance_prob
         else:
-            overall_xs, diagnostics = mcmc_samples(input_function=function, start_value=torch.tensor(init_x ), mcmc_type=self.mcmc_type, num_samples=self.epochs, warmup_steps=self.warm_up) 
+            overall_xs, diagnostics = mcmc_samples(input_function=function, start_value=torch.tensor(init_x ), mcmc_type=self.mcmc_type, num_samples=self.epochs, warmup_steps=self.warm_up, need_cuda=False) 
 
             for name, diagnostic_dict in diagnostics.items():
                 for sub_name, diagnostic in diagnostic_dict.items():

@@ -25,6 +25,18 @@ class Config:
             y_cubed = torch.pow(ys,3)
             return  torch.pow( x_squared + y_squared - 1, 3) -   x_squared * y_cubed
 
+        def heart_jacobian(x):
+            xs = x[:,0]
+            ys = x[:,1]
+            x2 = torch.pow(xs,2)
+            y2 = torch.pow(ys, 2)
+            y3 = torch.pow(ys, 3)
+            x2_y2_1 = x2 + y2 - 1
+            dx2 = 6 * torch.pow(x2_y2_1, 2) + 12*xs*x2_y2_1 - 2 * y3
+            dy2 = 6 * torch.pow(x2_y2_1, 2) + 12 * y2 * x2_y2_1 - 6 * x2 * ys
+            dxdy = 12 * xs * ys * x2_y2_1 - 6 * xs * y2
+            return torch.tensor([[dx2, dxdy], [dxdy, dy2]])
+
         self.func = heart 
 
 
@@ -34,8 +46,9 @@ class Config:
         self.warm_up = 500
         self.use_bounding_box = False 
         self.reject_outside_bounds = False 
-        self.mcmc_type = 'mh'
+        self.mcmc_type = 'nuts'
         self.func_type = 'function'
+        self.manual_jacobian = heart_jacobian
 
         # Training parameters
         # self.momentum_sigma = 0.005
@@ -57,6 +70,8 @@ class Config:
             self.filename += "bounded_"
         if self.reject_outside_bounds:
             self.filename += "reject_"
+        if self.manual_jacobian:
+            self.filename += "manual_"
         self.filename += self.mcmc_type 
         self.filename += '_result.hdf5'
 

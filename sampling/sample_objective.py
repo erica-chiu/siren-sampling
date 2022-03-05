@@ -4,13 +4,14 @@ import numpy as np
 
 
 class SampleObjective:
-    def __init__(self, func, temp, dim_x, use_jacobian=True, use_bounding_box=False):
+    def __init__(self, func, temp, dim_x, use_jacobian=True, use_bounding_box=False, manual_jacobian=None):
         self.func = func 
         self.temp = temp
         #self.normalize = normalize
         self.use_jacobian = use_jacobian
         self.use_bounding_box = use_bounding_box
         self.dim_x = dim_x
+        self.manual_jacobian = manual_jacobian
 
 
     def _barrier(self, x):
@@ -38,7 +39,12 @@ class SampleObjective:
         func_out = self.func(x)
         if self.use_bounding_box:
             func_out += self._barrier(x)
-        jacobian = torch.autograd.grad(func_out, x, grad_outputs=torch.ones_like(func_out), create_graph=True)[0]
+
+        jacobian = None
+        if self.manual_jacobian:
+            jacobian = self.manual_jacobian(x)
+        else:
+            jacobian = torch.autograd.grad(func_out, x, grad_outputs=torch.ones_like(func_out), create_graph=True)[0]
         return torch.log(torch.sqrt(torch.linalg.det(jacobian @ jacobian.T)))
 
 
