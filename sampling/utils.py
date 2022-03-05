@@ -1,5 +1,6 @@
 import numpy as np
 import h5py
+import os
 
 
 def save_numpy_arrays(filename, array_dict, create_dir_if_not_exist=True):

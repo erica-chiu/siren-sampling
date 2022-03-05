@@ -69,11 +69,11 @@ class Runner:
         f_data = [self.func(torch.unsqueeze(torch.tensor(x).float(),dim=0)).numpy() for x in overall_xs]
         results['f_data'] = f_data
 
-        coords = np.linspace(self.min_coord, self.max_coord, self.num_gird)
+        coords = np.linspace(self.min_coord, self.max_coord, self.num_grid)
         x_coords, y_coords = np.meshgrid(coords, coords)
         rows, cols = np.shape(x_coords)
         prob = np.zeros((rows, cols ))
-        gradient = np.zeros((rows, cols, 3))
+        gradient = np.zeros((rows, cols, self.dims))
         f_values = np.zeros((rows, cols))
         log_det_jacob = np.zeros((rows,cols))
         for i in range(rows):
@@ -83,10 +83,10 @@ class Runner:
                 value[self.nonzero_dims[1]] = y_coords[i][j]
                 value = np.array(value)
 
-                prob[i, j, k] = np.exp(function.log_p(value))
-                gradient[i,j,k, :] = function.u_gradient_fn(value)
-                log_det_jacob[i,j,k] = function._log_det_jacobian(value)
-                f_values[i,j,k] = self.func(torch.tensor(np.array([value])).float())
+                prob[i, j] = np.exp(function.log_p(value))
+                gradient[i,j, :] = function.u_gradient_fn(value)
+                log_det_jacob[i,j] = function._log_det_jacobian(torch.tensor(np.array([value]), requires_grad=True).float())
+                f_values[i,j] = self.func(torch.tensor(np.array([value])).float())
 
         results['prob'] = prob
         results['x_coords'] = x_coords

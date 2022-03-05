@@ -34,7 +34,7 @@ class Config:
         self.warm_up = 500
         self.use_bounding_box = False 
         self.reject_outside_bounds = False 
-        self.mcmc_type = 'nuts'
+        self.mcmc_type = 'mh'
         self.func_type = 'function'
 
         # Training parameters
