@@ -32,10 +32,9 @@ class Config:
             y2 = torch.pow(ys, 2)
             y3 = torch.pow(ys, 3)
             x2_y2_1 = x2 + y2 - 1
-            dx2 = 6 * torch.pow(x2_y2_1, 2) + 12*xs*x2_y2_1 - 2 * y3
-            dy2 = 6 * torch.pow(x2_y2_1, 2) + 12 * y2 * x2_y2_1 - 6 * x2 * ys
-            dxdy = 12 * xs * ys * x2_y2_1 - 6 * xs * y2
-            return torch.tensor([[dx2, dxdy], [dxdy, dy2]])
+            dx = 6 * xs * torch.pow(x2_y2_1, 2) - 2 * xs * y3
+            dy = 6 * ys * torch.pow(x2_y2_1, 2) - 3 * x2 * y2
+            return torch.tensor([[dx, dy]])
 
         self.func = heart 
 
