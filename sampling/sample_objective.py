@@ -35,15 +35,13 @@ class SampleObjective:
         return norm / self.temp
 
     def _log_det_jacobian(self, x):
-        
-        func_out = self.func(x)
-        if self.use_bounding_box:
-            func_out += self._barrier(x)
-
         jacobian = None
         if self.manual_jacobian:
             jacobian = self.manual_jacobian(x)
         else:
+            func_out = self.func(x)
+            if self.use_bounding_box:
+                func_out += self._barrier(x)
             jacobian = torch.autograd.grad(func_out, x, grad_outputs=torch.ones_like(func_out), create_graph=True)[0]
         return torch.log(torch.sqrt(torch.linalg.det(jacobian @ jacobian.T)))
 

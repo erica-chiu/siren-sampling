@@ -4,7 +4,8 @@ import torch
 import random
 import h5py
 
-from sampling.mh import train
+import sampling.mh as mh 
+import sampling.hmc as hmc
 from sampling.sample_objective import SampleObjective
 from sampling.pyro_sample import mcmc_samples
 from sampling.siren_utils import get_siren_model
@@ -56,8 +57,10 @@ class Runner:
 
         init_x = np.random.uniform(-1, 1, size=[self.dims])
         if self.mcmc_type == 'mh':
-            overall_xs, acceptance_prob = train(init_x=init_x, function=function, epochs=self.epochs, warm_up=self.warm_up, reject_outside_bounds=self.reject_outside_bounds)
+            overall_xs, acceptance_prob = mh.train(init_x=init_x, function=function, epochs=self.epochs, warm_up=self.warm_up, reject_outside_bounds=self.reject_outside_bounds)
             results['acceptance_prob'] = acceptance_prob
+        elif self.mcmc_type == 'hmc_self':
+            overall_xs = hmc.train(x=init_x, function=function, epochs=self.epochs, warm_up=self.warm_up)
         else:
             overall_xs, diagnostics = mcmc_samples(input_function=function, start_value=torch.tensor(init_x ), mcmc_type=self.mcmc_type, num_samples=self.epochs, warmup_steps=self.warm_up, need_cuda=False) 
 

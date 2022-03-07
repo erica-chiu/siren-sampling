@@ -45,9 +45,9 @@ class Config:
         self.warm_up = 500
         self.use_bounding_box = False 
         self.reject_outside_bounds = False 
-        self.mcmc_type = 'nuts'
+        self.mcmc_type = 'hmc_self'
         self.func_type = 'function'
-        self.manual_jacobian = heart_jacobian
+        self.manual_jacobian = None 
 
         # Training parameters
         # self.momentum_sigma = 0.005
